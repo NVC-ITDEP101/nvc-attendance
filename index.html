@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -31,10 +32,6 @@
             text-align: center;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
         }
-
-        /* Success Card Styling */
-        #success-card { display: none; }
-        .success-icon { font-size: 50px; color: #00d4ff; margin-bottom: 20px; }
 
         .input-group { margin-bottom: 20px; text-align: left; }
         .input-group label { display: block; font-size: 0.85rem; color: #00d4ff; margin-bottom: 8px; }
@@ -91,90 +88,73 @@
             <input type="text" id="date-display" readonly>
         </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn">Mark Attendance</button>
+        <button type="submit" class="submit-btn">Mark Attendance</button>
     </form>
-
-    <div id="success-card" class="glass-form">
-        <div class="success-icon">✓</div>
-        <h2 style="color: #00d4ff;">Submission Successful</h2>
-        <p>You have filled the attendance successfully for today.</p>
-        <p style="font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 20px;">
-            Form will reset automatically at midnight.
-        </p>
-    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+    // 1. Setup - USE YOUR ACTUAL KEYS HERE
     const SUPABASE_URL = 'https://lgbgobzasuqozdkvxifk.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxnYmdvYnphc3Vxb3pka3Z4aWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODg3OTcsImV4cCI6MjA4NDA2NDc5N30.a64sYwLUfGd1qNqg9Vfon_DqvrntkMiB1v-l6tPoITM';
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const eventInput = document.getElementById('event-display');
     const dateInput = document.getElementById('date-display');
-    const attendanceForm = document.getElementById('attendance-form');
-    const successCard = document.getElementById('success-card');
 
-    // --- 1. Check if user already submitted today ---
-    function checkStatus() {
-        const today = new Date().toLocaleDateString('en-GB');
-        const savedDate = localStorage.getItem('nvc_attendance_date');
-
-        if (savedDate === today) {
-            attendanceForm.style.display = 'none';
-            successCard.style.display = 'block';
-        } else {
-            attendanceForm.style.display = 'block';
-            successCard.style.display = 'none';
-        }
-    }
-
-    // --- 2. Initial Fetch ---
+    // 2. Initial Fetch of Event
     async function fetchCurrentEvent() {
         const { data } = await _supabase.from('settings').select('event_name').eq('id', 1).single();
         if (data) eventInput.value = data.event_name;
     }
 
+    // 3. Set Date
     dateInput.value = new Date().toLocaleDateString('en-GB');
 
-    // --- 3. Realtime Updates ---
-    _supabase.channel('public:settings').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
-        eventInput.value = payload.new.event_name;
-    }).subscribe();
+   // Ensure this uses _supabase (with the underscore)
+_supabase
+  .channel('public:settings')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
+    // This updates the locked event box automatically
+    document.getElementById('event-display').value = payload.new.event_name;
+  })
+  .subscribe();
 
-    // --- 4. Form Submission ---
-    attendanceForm.addEventListener('submit', async (e) => {
+    // 5. Submit Form - Matches column names in download.html
+    document.getElementById('attendance-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const btn = document.getElementById('submit-btn');
-        btn.innerText = "Processing...";
-        btn.disabled = true;
         
-        const { error } = await _supabase.from('attendance').insert([{ 
-            student_name: document.getElementById('name').value, 
-            id: parseInt(document.getElementById('id').value), 
-            position: document.getElementById('position').value, 
-            event_name: eventInput.value,
-            date: dateInput.value
-        }]);
+        const { error } = await _supabase
+            .from('attendance')
+            .insert([{ 
+                student_name: document.getElementById('name').value, 
+                id: parseInt(document.getElementById('id').value), 
+                position: document.getElementById('position').value, 
+                event_name: eventInput.value,
+                date: document.getElementById('date-display').value,
+                
+               
+            }]);
 
         if (error) {
             alert("Error: " + error.message);
-            btn.innerText = "Mark Attendance";
-            btn.disabled = false;
         } else {
-            // Save submission date to local storage
-            const today = new Date().toLocaleDateString('en-GB');
-            localStorage.setItem('nvc_attendance_date', today);
-            
-            // Toggle Cards
-            checkStatus();
+            alert("Attendance marked successfully!");
+            document.getElementById('name').value = "";
+            document.getElementById('studentId').value = "";
         }
     });
 
-    // Run on page load
     fetchCurrentEvent();
-    checkStatus();
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
