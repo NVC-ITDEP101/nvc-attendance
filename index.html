@@ -207,6 +207,15 @@
             }
         });
     });
+
+    // Add this inside your script tag in index.html
+supabase
+  .channel('public:settings')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
+    document.getElementById('event-display').value = payload.new.current_event;
+  })
+  .subscribe();
 </script>
 </body>
+
 </html>
