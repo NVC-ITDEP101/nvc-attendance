@@ -132,7 +132,7 @@ async function fetchCurrentEvent() {
         .from('settings')
         .select('event_name')
         .eq('id', 1)
-        .single();
+        
     
     if (data) {
         eventInput.value = data.event_name;
@@ -197,6 +197,7 @@ fetchCurrentEvent();    // Get the event name from database immediately
 </script>
 </body>
 </html>
+
 
 
 
