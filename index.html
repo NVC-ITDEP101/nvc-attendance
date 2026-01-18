@@ -104,8 +104,8 @@
 
     // 2. Initial Fetch of Event
     async function fetchCurrentEvent() {
-        const { data } = await _supabase.from('settings').select('current_event').eq('id', 1).single();
-        if (data) eventInput.value = data.current_event;
+        const { data } = await _supabase.from('settings').select('event_name').eq('id', 1).single();
+        if (data) eventInput.value = data.event_name;
     }
 
     // 3. Set Date
@@ -116,7 +116,7 @@ _supabase
   .channel('public:settings')
   .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
     // This updates the locked event box automatically
-    document.getElementById('event-display').value = payload.new.current_event;
+    document.getElementById('event-display').value = payload.new.event_name;
   })
   .subscribe();
 
@@ -149,6 +149,7 @@ _supabase
 </script>
 </body>
 </html>
+
 
 
 
