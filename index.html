@@ -111,13 +111,14 @@
     // 3. Set Date
     dateInput.value = new Date().toLocaleDateString('en-GB');
 
-    // 4. Realtime Listener - Fixed variable to _supabase
-    _supabase
-      .channel('public:settings')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
-          eventInput.value = payload.new.current_event;
-      })
-      .subscribe();
+   // Ensure this uses _supabase (with the underscore)
+_supabase
+  .channel('public:settings')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
+    // This updates the locked event box automatically
+    document.getElementById('event-display').value = payload.new.current_event;
+  })
+  .subscribe();
 
     // 5. Submit Form - Matches column names in download.html
     document.getElementById('attendance-form').addEventListener('submit', async (e) => {
@@ -146,3 +147,4 @@
 </script>
 </body>
 </html>
+
