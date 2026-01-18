@@ -151,14 +151,8 @@ _supabase
         }
     });
 
-  
+    fetchCurrentEvent();
 
-    async function fetchCurrentEvent() {
-    const { data } = await _supabase
-        .from('settings')
-        .select('event_name')
-        .eq('id', 1)
-        .single();
     
     if (data) {
         document.getElementById('event-display').value = data.event_name;
@@ -168,6 +162,7 @@ _supabase
 </script>
 </body>
 </html>
+
 
 
 
