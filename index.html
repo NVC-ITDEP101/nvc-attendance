@@ -128,7 +128,7 @@ _supabase
             .from('attendance')
             .insert([{ 
                 student_name: document.getElementById('name').value, 
-                student_id: parseInt(document.getElementById('id').value), 
+                id: parseInt(document.getElementById('id').value), 
                 position: document.getElementById('position').value, 
                 event_name: eventInput.value,
                 date: dateInput.value
@@ -147,6 +147,7 @@ _supabase
 </script>
 </body>
 </html>
+
 
 
 
