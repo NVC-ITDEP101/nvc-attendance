@@ -100,68 +100,104 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  // 1. Setup - USE YOUR ACTUAL KEYS HERE
-    const SUPABASE_URL = 'https://lgbgobzasuqozdkvxifk.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxnYmdvYnphc3Vxb3pka3Z4aWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODg3OTcsImV4cCI6MjA4NDA2NDc5N30.a64sYwLUfGd1qNqg9Vfon_DqvrntkMiB1v-l6tPoITM';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+ // 1. Setup - Supabase Connection
+const SUPABASE_URL = 'https://lgbgobzasuqozdkvxifk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxnYmdvYnphc3Vxb3pka3Z4aWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODg3OTcsImV4cCI6MjA4NDA2NDc5N30.a64sYwLUfGd1qNqg9Vfon_DqvrntkMiB1v-l6tPoITM';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const eventInput = document.getElementById('event-display');
-    const dateInput = document.getElementById('date-display');
+const eventInput = document.getElementById('event-display');
+const dateInput = document.getElementById('date-display');
+const attendanceForm = document.getElementById('attendance-form');
+const successCard = document.getElementById('success-card');
 
-    // 2. Initial Fetch of Event
-    async function fetchCurrentEvent() {
-        const { data } = await _supabase.from('settings').select('event_name').eq('id', 1).single();
-        if (data) eventInput.value = data.event_name;
+// --- 2. Check Submission Status (Prevention Logic) ---
+function checkSubmissionStatus() {
+    const today = new Date().toLocaleDateString('en-GB'); // Current Date
+    const lastSubmission = localStorage.getItem('attendance_submitted_date');
+
+    if (lastSubmission === today) {
+        // Already filled today
+        if(attendanceForm) attendanceForm.style.display = 'none';
+        if(successCard) successCard.style.display = 'block';
+    } else {
+        // New day: Show form
+        if(attendanceForm) attendanceForm.style.display = 'block';
+        if(successCard) successCard.style.display = 'none';
     }
+}
 
-    // 3. Set Date
-    dateInput.value = new Date().toLocaleDateString('en-GB');
+// --- 3. Initial Fetch (Fixes the refresh/disappearing issue) ---
+async function fetchCurrentEvent() {
+    const { data, error } = await _supabase
+        .from('settings')
+        .select('event_name')
+        .eq('id', 1)
+        .single();
+    
+    if (data) {
+        eventInput.value = data.event_name;
+    } else if (error) {
+        console.error("Fetch error:", error.message);
+    }
+}
 
-   // Ensure this uses _supabase (with the underscore)
+// --- 4. Set Initial Date ---
+dateInput.value = new Date().toLocaleDateString('en-GB');
+
+// --- 5. Realtime Listener (Updates name live without refresh) ---
 _supabase
   .channel('public:settings')
   .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
-    // This updates the locked event box automatically
-    document.getElementById('event-display').value = payload.new.event_name;
+      if (payload.new && payload.new.event_name) {
+          eventInput.value = payload.new.event_name;
+      }
   })
   .subscribe();
 
-    // 5. Submit Form - Matches column names in download.html
-    document.getElementById('attendance-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const { error } = await _supabase
-            .from('attendance')
-            .insert([{ 
-                student_name: document.getElementById('name').value, 
-                id: parseInt(document.getElementById('id').value), 
-                position: document.getElementById('position').value, 
-                event_name: eventInput.value,
-                date: document.getElementById('date-display').value,
-                
-               
-            }]);
-
-        if (error) {
-            alert("Error: " + error.message);
-        } else {
-            alert("Attendance marked successfully!");
-            document.getElementById('name').value = "";
-            document.getElementById('studentId').value = "";
-        }
-    });
-
-    fetchCurrentEvent();
-
+// --- 6. Submit Form Logic ---
+attendanceForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
     
-    if (data) {
-        document.getElementById('event-display').value = data.event_name;
+    const submitBtn = e.target.querySelector('button');
+    submitBtn.disabled = true; // Prevent double submission
+    submitBtn.innerText = "Processing...";
+
+    const todayDate = dateInput.value;
+
+    const { error } = await _supabase
+        .from('attendance')
+        .insert([{ 
+            student_name: document.getElementById('name').value, 
+            id: parseInt(document.getElementById('id').value), 
+            position: document.getElementById('position').value, 
+            event_name: eventInput.value,
+            date: todayDate
+        }]);
+
+    if (error) {
+        alert("Error: " + error.message);
+        submitBtn.disabled = false;
+        submitBtn.innerText = "Mark Attendance";
+    } else {
+        // Save date to browser storage to lock form for today
+        localStorage.setItem('attendance_submitted_date', todayDate);
+        
+        // Switch UI to Success Card
+        attendanceForm.style.display = 'none';
+        successCard.style.display = 'block';
+        
+        attendanceForm.reset();
     }
-}
+});
+
+// --- 7. Run on Load ---
+checkSubmissionStatus(); // Check if they should see the form or success card
+fetchCurrentEvent();    // Get the event name from database immediately
 });
 </script>
 </body>
 </html>
+
 
 
 
