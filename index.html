@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVC Event Attendance</title>
+    <style>
+        /* Base Styling */
+        body {
+            background: #0f0f0f;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-image: url(wallpaperflare-cropped-2.jpeg);
+            background-size:cover ;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 450px; /* Desktop width */
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .glass-form {
+            background: rgba(23, 23, 23, 0.774);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(0, 0, 0, 0.211);
+            border-radius: 25px;
+            padding: 40px;
+            text-align: center;
+            opacity: 0.8;
+        }
+        #userPosition{
+            color: #5b5b5b;
+        }
+        option{
+            color: #000000;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px; /* Prevents iOS auto-zoom on focus */
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        input[readonly] {
+            background: rgba(255, 255, 255, 0.02);
+            color: #888;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: hsl(190, 100%, 50%);
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* MOBILE RESPONSIVE CSS */
+        @media (max-width: 768px) {
+            .form-container {
+                padding: 15px;
+            }
+            .glass-form {
+                padding: 30px 20px;
+                border-radius: 20px;
+            }
+            h2 {
+                font-size: 1.5rem;
+            }
+            .input-group label {
+                font-size: 0.8rem;
+            }
+            body{
+               background-position: center center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    
+    <form id="attendance-form" class="glass-form">
+        <h2>Member Attendance</h2>
+        <div class="input-group">
+            <label>Current Event</label>
+            <input type="text" id="event-display" readonly style=" color: #00d4ff; font-weight: bold;">
+        </div>
+        <div class="input-group">
+            <label>NSBM ID Name</label>
+            <input type="text" id="name" placeholder="Letters only" required>
+        </div>
+
+        <div class="input-group">
+            <label>NSBM ID Number</label>
+            <input type="text" id="studentId" inputmode="numeric" placeholder="Integers only" required>
+        </div>
+
+        <div class="input-group">
+            <label>Position</label>
+            <select id="position" required>
+                <option value="" disabled selected>Select Position</option>
+                <option value="Department Member">Department Member</option>
+                <option value="Member">Member</option>
+            </select>
+        </div>
+    
+        <div class="input-group">
+            <label>Current Date</label>
+            <input type="text" id="data" readonly>
+        </div>
+
+        <div class="input-group">
+            <label>Sign-in Time</label>
+            <input type="text" id="time" readonly>
+        </div>
+
+        <button type="submit" class="submit-btn">Mark Attendance</button>
+    </form>
+    
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('attendance-form');
+        const eventInput = document.getElementById('event-display');
+        const nameInput = document.getElementById('name'); 
+        const idInput = document.getElementById('studentId');
+        const positionInput = document.getElementById('position');
+        const dateInput = document.getElementById('data');
+        const timeInput = document.getElementById('time');
+
+        // Fetch Event Name from Supabase (instead of server.js)
+        async function fetchEvent() {
+            // Note: You could create a separate 'events' table or hardcode it
+            eventInput.value = "NVC General Meeting"; 
+        }
+        fetchEvent();
+
+        // Real-time Clock logic
+        const updateDateTime = () => {
+            const now = new Date();
+            dateInput.value = now.toLocaleDateString('en-GB').replace(/\//g, '-');
+            timeInput.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        };
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // Submit to Supabase
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const { data, error } = await supabase
+                .from('nvc_attendance')
+                .insert([{ 
+                    name: nameInput.value, 
+                    student_id: idInput.value, 
+                    position: positionInput.value, 
+                    event: eventInput.value,
+                    date: dateInput.value,
+                    time: timeInput.value 
+                }]);
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                localStorage.setItem('nvs_last_signin', new Date().toDateString());
+                alert("Attendance marked successfully!");
+                location.reload();
+            }
+        });
+    });
+</script>
+</body>
+</html>
