@@ -150,6 +150,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+
+    
     const SUPABASE_URL = 'YOUR_SUPABASE_URL';
     const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -203,6 +205,25 @@
             }
         });
     });
+
+    document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Fetch the Event Name from Supabase Settings table
+    const { data, error } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'current_event')
+        .single();
+
+    if (data) {
+        // Set the value into your event display box
+        document.getElementById('event-display').value = data.value;
+    } else {
+        console.error("Could not fetch event name:", error);
+    }
+    
+    // ... rest of your clock and submit logic
+});
 </script>
 </body>
+
 </html>
