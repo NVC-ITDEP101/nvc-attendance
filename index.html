@@ -127,10 +127,10 @@ _supabase
         const { error } = await _supabase
             .from('attendance')
             .insert([{ 
-                student_name: document.getElementById('name').value, 
-                id: parseInt(document.getElementById('id').value), 
-                position: document.getElementById('position').value, 
-                event_name: eventInput.value,
+                StudentName: document.getElementById('name').value, 
+                StudentID: parseInt(document.getElementById('id').value), 
+                Position: document.getElementById('position').value, 
+                EventName: eventInput.value,
                
             }]);
 
@@ -147,6 +147,7 @@ _supabase
 </script>
 </body>
 </html>
+
 
 
 
