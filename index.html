@@ -151,79 +151,85 @@
 
 <script>
 
-    
-    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+   // Replace these with your actual Supabase credentials from your Dashboard
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const form = document.getElementById('attendance-form');
-        const eventInput = document.getElementById('event-display');
-        const nameInput = document.getElementById('name'); 
-        const idInput = document.getElementById('studentId');
-        const positionInput = document.getElementById('position');
-        const dateInput = document.getElementById('data');
-        const timeInput = document.getElementById('time');
+document.addEventListener('DOMContentLoaded', async () => {
+    const form = document.getElementById('attendance-form');
+    const eventInput = document.getElementById('event-display');
+    const nameInput = document.getElementById('name'); 
+    const idInput = document.getElementById('studentId');
+    const positionInput = document.getElementById('position');
+    const dateInput = document.getElementById('data');
+    const timeInput = document.getElementById('time');
 
-        // Fetch Event Name from Supabase (instead of server.js)
-        async function fetchEvent() {
-            // Note: You could create a separate 'events' table or hardcode it
-            eventInput.value = "NVC General Meeting"; 
+    // 1. Fetch the Event Name from Supabase 'settings' table
+    async function getLiveEvent() {
+        const { data, error } = await _supabase
+            .from('settings')
+            .select('value')
+            .eq('key', 'current_event')
+            .single();
+
+        if (data) {
+            eventInput.value = data.value;
+        } else {
+            eventInput.value = "No Active Event";
+            console.error("Error fetching event:", error);
         }
-        fetchEvent();
-
-        // Real-time Clock logic
-        const updateDateTime = () => {
-            const now = new Date();
-            dateInput.value = now.toLocaleDateString('en-GB').replace(/\//g, '-');
-            timeInput.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        };
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
-
-        // Submit to Supabase
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const { data, error } = await supabase
-                .from('nvc_attendance')
-                .insert([{ 
-                    name: nameInput.value, 
-                    student_id: idInput.value, 
-                    position: positionInput.value, 
-                    event: eventInput.value,
-                    date: dateInput.value,
-                    time: timeInput.value 
-                }]);
-
-            if (error) {
-                alert("Error: " + error.message);
-            } else {
-                localStorage.setItem('nvs_last_signin', new Date().toDateString());
-                alert("Attendance marked successfully!");
-                location.reload();
-            }
-        });
-    });
-
-    document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Fetch the Event Name from Supabase Settings table
-    const { data, error } = await supabase
-        .from('settings')
-        .select('value')
-        .eq('key', 'current_event')
-        .single();
-
-    if (data) {
-        // Set the value into your event display box
-        document.getElementById('event-display').value = data.value;
-    } else {
-        console.error("Could not fetch event name:", error);
     }
-    
-    // ... rest of your clock and submit logic
+    getLiveEvent();
+
+    // 2. Real-time Clock logic
+    const updateDateTime = () => {
+        const now = new Date();
+        dateInput.value = now.toLocaleDateString('en-GB').replace(/\//g, '-');
+        timeInput.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    };
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    // 3. Prevent duplicate sign-ins (Optional but recommended)
+    const today = new Date().toDateString();
+    if (localStorage.getItem('nvs_last_signin') === today) {
+        // You can disable the button if they already signed in today
+        // document.querySelector('.submit-btn').disabled = true;
+        // document.querySelector('.submit-btn').innerText = "Already Marked Today";
+    }
+
+    // 4. Submit to Supabase 'nvc_attendance' table
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        // Basic Validation: Ensure ID is numeric
+        if (isNaN(idInput.value)) {
+            return alert("Please enter a valid numeric Student ID");
+        }
+
+        const { data, error } = await _supabase
+            .from('nvc_attendance')
+            .insert([{ 
+                name: nameInput.value, 
+                student_id: idInput.value, 
+                position: positionInput.value, 
+                event: eventInput.value,
+                date: dateInput.value,
+                time: timeInput.value 
+            }]);
+
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            localStorage.setItem('nvs_last_signin', today);
+            alert("Attendance marked successfully!");
+            location.reload();
+        }
+    });
 });
 </script>
 </body>
 
 </html>
+
