@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVC Event Attendance</title>
+    <style>
+        /* Base Styling */
+        body {
+            background: #0f0f0f;
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            /* Update the image path as needed */
+            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('wallpaperflare-cropped-2.jpeg');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 450px; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .glass-form {
+            background: rgba(23, 23, 23, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        h2 { margin-bottom: 30px; font-weight: 300; letter-spacing: 1px; }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #00d4ff;
+            margin-bottom: 8px;
+        }
+
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px; 
+            outline: none;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        .input-group input:focus {
+            border-color: #00d4ff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* Locked / Readonly Styling */
+        input[readonly] {
+            background: rgba(0, 0, 0, 0.3);
+            color: #aaa;
+            cursor: not-allowed;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: #00d4ff;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            color: #000;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background: #fff;
+            transform: scale(1.02);
+        }
+
+        option { color: black; }
+
+        @media (max-width: 768px) {
+            .form-container { padding: 15px; }
+            .glass-form { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <form id="attendance-form" class="glass-form">
+        <h2>Member Attendance</h2>
+        
+        <div class="input-group">
+            <label>Current Event (Locked)</label>
+            <input type="text" id="event-display" readonly placeholder="Loading event...">
+        </div>
+
+        <div class="input-group">
+            <label>Student Name</label>
+            <input type="text" id="name" placeholder="Enter Name" required 
+                   oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')">
+        </div>
+
+        <div class="input-group">
+            <label>Student ID</label>
+            <input type="text" id="studentId" placeholder="Enter ID Numbers" required 
+                   oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+
+        <div class="input-group">
+            <label>Position</label>
+            <select id="position" required>
+                <option value="" disabled selected>Select Position</option>
+                <option value="Department Member">Department Member</option>
+                <option value="Member">Member</option>
+            </select>
+        </div>
+    
+        <div class="input-group">
+            <label>Date (Locked)</label>
+            <input type="text" id="date-display" readonly>
+        </div>
+
+        <button type="submit" class="submit-btn">Mark Attendance</button>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    // Replace with your actual Supabase Details
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const eventInput = document.getElementById('event-display');
+        const dateInput = document.getElementById('date-display');
+
+        // 1. Fetch Event Name from Supabase 'settings' table
+        async function fetchCurrentEvent() {
+            const { data, error } = await _supabase
+                .from('settings')
+                .select('current_event')
+                .eq('id', 1)
+                .single();
+            
+            if (data) {
+                eventInput.value = data.current_event;
+            } else {
+                eventInput.value = "No Active Event";
+            }
+        }
+        fetchCurrentEvent();
+
+        // 2. Automatically set and lock current date
+        const today = new Date();
+        dateInput.value = today.toLocaleDateString('en-GB'); // Formats as DD/MM/YYYY
+
+        // 3. Submit to Supabase
+        document.getElementById('attendance-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('name').value;
+            const sId = document.getElementById('studentId').value;
+            const pos = document.getElementById('position').value;
+            const event = eventInput.value;
+            const date = dateInput.value;
+
+            const { data, error } = await _supabase
+                .from('attendance')
+                .insert([{ 
+                    student_name: name, 
+                    student_id: parseInt(sId), 
+                    position: pos, 
+                    event_name: event,
+                    date: date
+                }]);
+
+            if (error) {
+                alert("Error: " + error.message);
+            } else {
+                alert("Attendance marked successfully for " + event + "!");
+                document.getElementById('name').value = "";
+                document.getElementById('studentId').value = "";
+            }
+        });
+    });
+</script>
+</body>
+</html>
