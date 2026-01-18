@@ -127,34 +127,41 @@ _supabase
   .subscribe();
 
     // 5. Submit Form - Matches column names in download.html
-    document.getElementById('attendance-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
+   // 5. Submit Form
+document.querySelector('.glass-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    // Select the form using the class name
+    const myForm = document.querySelector('.glass-form');
+
+    const { error } = await _supabase
+        .from('attendance')
+        .insert([{ 
+            student_name: document.getElementById('name').value, 
+            id: parseInt(document.getElementById('id').value), 
+            position: document.getElementById('position').value, 
+            event_name: eventInput.value,
+            date: document.getElementById('date-display').value,
+        }]);
+
+    if (error) {
+        alert("Error: " + error.message);
+    } else {
+        alert("Attendance marked successfully!");
         
-        const { error } = await _supabase
-            .from('attendance')
-            .insert([{ 
-                student_name: document.getElementById('name').value, 
-                id: parseInt(document.getElementById('id').value), 
-                position: document.getElementById('position').value, 
-                event_name: eventInput.value,
-                date: document.getElementById('date-display').value,
-                
-               
-            }]);
+        // This one line clears all inputs and resets the dropdown 
+        // while keeping the "Locked" fields if they are hardcoded/fetched
+        myForm.reset();
 
-        if (error) {
-            alert("Error: " + error.message);
-        } else {
-            alert("Attendance marked successfully!");
-            document.getElementById('name').value = "";
-            document.getElementById('studentId').value = "";
-        }
-    });
-
-    fetchCurrentEvent();
+        // Re-run these two so the "Locked" fields stay visible after reset
+        fetchCurrentEvent(); 
+        dateInput.value = new Date().toLocaleDateString('en-GB');
+    }
+});
 </script>
 </body>
 </html>
+
 
 
 
