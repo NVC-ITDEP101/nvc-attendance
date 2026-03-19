@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVC Event Attendance</title>
+    <style>
+        body {
+            background:url(ntruugtn.jpg) no-repeat center center fixed !important;
+            background-size: cover !important;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+           
+            background-size: cover;
+            background-position: center;
+        }
+
+        .form-container { width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box;
+           height: 100%;
+        }
+
+        .glass-form, .success-box {
+            background: rgba(23, 23, 23, 0.75);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 25px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+
+
+         img {
+            max-width: 150px;
+            margin-bottom: 5px;
+        }
+        h2 {
+            color: #dfdfdf;
+            margin-bottom: 30px;
+        }
+
+        /* Success Box styling */
+        .success-box { display: none; }
+        .success-box h2 { color: rgb(6, 91, 94); margin-bottom: 15px; }
+        .success-box p { color: rgba(255, 255, 255, 0.8); line-height: 1.6; }
+        .icon-check { font-size: 50px; color: rgb(6, 91, 94); margin-bottom: 20px; display: block; }
+
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; font-size: 0.85rem; color: #00d4ff; margin-bottom: 8px; }
+        .input-group input, .input-group select {
+            width: 100%; padding: 12px; background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px;
+            color: white; font-size: 16px; outline: none; box-sizing: border-box;
+        }
+
+        input[readonly] { background: rgba(0, 0, 0, 0.3); color: #aaa; cursor: not-allowed; }
+
+        .submit-btn {
+            width: 100%; padding: 15px; background: #00d4ff; border: none;
+            border-radius: 10px; font-weight: bold; color: #000; cursor: pointer; transition: 0.3s;
+        }
+        .submit-btn:hover { background: #fff; transform: scale(1.02); }
+        option { color: black; }
+
+        /* Responsive */
+        @media (max-width: 687px) {
+
+            body{
+                background: url(mauricio-chavez-qpGn6DnlE10-unsplash.jpg) no-repeat center center fixed !important;
+                background-size: cover !important;
+            }
+             .glass-form, .success-box {
+                padding: 30px 25px;
+            }
+            .form-container { padding: 10px;
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <form id="attendance-form" class="glass-form">
+         <img src="NVClogo.png" alt="">
+        <h2>Member Attendance</h2>
+        <div class="input-group">
+            <label>Current Event (Locked)</label>
+            <input type="text" id="event-display" readonly placeholder="Loading event...">
+        </div>
+        <div class="input-group">
+            <label>Student Name</label>
+            <input type="text" id="name" placeholder="Enter Name" required oninput="this.value=this.value.replace(/[^a-zA-Z\s]/g,'')">
+        </div>
+        <div class="input-group">
+            <label>Student ID</label>
+            <input type="text" id="id" placeholder="Enter ID Numbers" required oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+        </div>
+        <div class="input-group">
+            <label>Position</label>
+            <select id="position" required>
+                <option value="" disabled selected>Select Position</option>
+                <option value="Board Member">Board Member</option>
+                <option value="Department Member">Department Member</option>
+                <option value="Member">Member</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Date (Locked)</label>
+            <input type="text" id="date-display" readonly>
+        </div>
+        <button type="submit" class="submit-btn">Mark Attendance</button>
+    </form>
+
+    <div id="success-box" class="success-box">
+        <span class="icon-check">✔</span>
+        <h2>Submitted Successfully</h2>
+        <p>Your Attendance Record Has Been Saved In Our Database.</p>
+        
+    </div>
+
+    <div id="invalid-link" class="glass-form" style="display: none;">
+        <h2 style="color: #ff4b4b;">Link Expired</h2>
+        <p style="color: white;">This attendance QR code is no longer valid. Please scan the current one.</p>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+    const SUPABASE_URL = 'https://lgbgobzasuqozdkvxifk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxnYmdvYnphc3Vxb3pka3Z4aWZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg0ODg3OTcsImV4cCI6MjA4NDA2NDc5N30.a64sYwLUfGd1qNqg9Vfon_DqvrntkMiB1v-l6tPoITM';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const form = document.getElementById('attendance-form');
+    const successBox = document.getElementById('success-box');
+    const dateInput = document.getElementById('date-display');
+    const today = new Date().toLocaleDateString('en-GB');
+
+   
+
+    // 2. Fetch Current Event
+    async function fetchCurrentEvent() {
+        const { data } = await _supabase.from('settings').select('event_name').eq('id', 1).maybeSingle();
+        if (data) document.getElementById('event-display').value = data.event_name;
+    }
+
+    // 3. Set Date Display
+    dateInput.value = today;
+
+    // 4. Submit logic
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const { error } = await _supabase
+            .from('attendance')
+            .insert([{ 
+                student_name: document.getElementById('name').value, 
+                id: parseInt(document.getElementById('id').value), 
+                position: document.getElementById('position').value, 
+                event_name: document.getElementById('event-display').value,
+                date: today
+            }]);
+
+        if (error) {
+            alert("Error: " + error.message);
+        } else {
+            // Save submission date to localStorage
+            localStorage.setItem('nvc_attendance_date', today);
+            
+            // Hide form and show success box
+            form.style.display = 'none';
+            successBox.style.display = 'block';
+        }
+    });
+
+    // Realtime event updates
+    _supabase.channel('public:settings').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'settings' }, payload => {
+        document.getElementById('event-display').value = payload.new.event_name;
+    }).subscribe();
+
+    // Run checks on load
+    checkSubmissionStatus();
+    fetchCurrentEvent();
+
+
+
+    // Remove the separate calls to checkSubmissionStatus() and validateAccess()
+// and use this combined logic instead:
+
+async function initializeForm() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token'); 
+    const todayDate = new Date().toISOString().split('T')[0]; // Format: YYYY-MM-DD
+    
+    const invalidBox = document.getElementById('invalid-link');
+    const lastSubmissionDate = localStorage.getItem('nvc_attendance_date');
+
+    // 1. VALIDATE TOKEN (Must match today's date)
+    if (token !== todayDate) {
+        form.style.display = 'none';
+        invalidBox.style.display = 'block';
+        return; // Stop here if link is invalid
+    }
+
+    // 2. CHECK PREVIOUS SUBMISSION
+    // Note: ensure 'today' variable is defined globally as new Date().toLocaleDateString('en-GB')
+    if (lastSubmissionDate === today) {
+        form.style.display = 'none';
+        successBox.style.display = 'block';
+        return;
+    }
+
+    // 3. IF VALID, LOAD EVENT DATA
+    await fetchCurrentEvent();
+}
+
+// Call the unified function on load
+initializeForm();
+</script>
+</body>
+</html>
